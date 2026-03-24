@@ -1,0 +1,26 @@
+=========================================
+  DIAGRAMA DE FLUXO — Makan72.com
+=========================================
+
+  Edita este ficheiro para desenhar o
+  fluxo da tua aplicacao. Usa ASCII art.
+
+  Exemplo:
+
+  ┌─────────┐    ┌──────────┐    ┌────┐
+  │  Input  │───→│ Process  │───→│ DB │
+  └─────────┘    └──────────┘    └────┘
+       │              │
+       ▼              ▼
+  ┌─────────┐    ┌──────────┐
+  │  Auth   │───→│ Output   │
+  └─────────┘    └──────────┘
+
+  Este diagrama aparece no tab MAP do
+  terminal do agente (ex: Zellij, tmux, ou tab separado).
+
+  Dica: Usa caracteres Unicode:
+    ─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼
+    → ← ↑ ↓ ▶ ◀ ▲ ▼
+
+=========================================
