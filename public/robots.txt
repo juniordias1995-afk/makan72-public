@@ -1,0 +1,17 @@
+# robots.txt for Makan72.com
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://makan72.com/sitemap.xml
+
+# Crawl-delay: 1
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /

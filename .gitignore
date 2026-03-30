@@ -10,9 +10,32 @@ venv/
 node_modules/
 npm-debug.log
 
+# Next.js
+.next/
+out/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Environment
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Geral
 *.log
 .DS_Store
 *.swp
 *.swo
 *~
+
+# Agent context files (private)
+QWEN.md
+GEMINI.md
+OPENCODE.md
+CLAUDE.md
+GOOSE.md
+CONTEXT.md
+design-system.md
+design-system-v2.md
+.goosehints

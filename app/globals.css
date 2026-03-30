@@ -1,0 +1,782 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   DESIGN SYSTEM - Makan72
+   Inspired by: Claude.ai, ChatGPT, Gemini, Qwen
+   Typography: Modern, Readable, Professional
+   ======================================== */
+
+/* Light Mode (default) */
+:root {
+  --bg-main: #FAFAFA;
+  --bg-surface: #FFFFFF;
+  --bg-card: #F5F5F7;
+  --bg-elevated: #FFFFFF;
+  
+  --primary: #00A3B0;
+  --primary-light: #00C4D4;
+  --primary-dark: #00828F;
+  
+  --accent: #6366F1;
+  --accent-light: #818CF8;
+  --accent-dark: #4F46E5;
+  
+  --border: #E5E7EB;
+  --border-light: #F3F4F6;
+  --border-dark: #D1D5DB;
+  
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-tertiary: #6B7280;
+  --text-muted: #9CA3AF;
+  
+  --shadow-color: 0, 0, 0;
+  --glow-primary: rgba(0, 163, 176, 0.4);
+  --glow-accent: rgba(99, 102, 241, 0.4);
+
+  /* Typography Scale - Based on Claude.ai & ChatGPT */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;     /* 18px */
+  --text-xl: 1.25rem;      /* 20px */
+  --text-2xl: 1.5rem;      /* 24px */
+  --text-3xl: 1.875rem;    /* 30px */
+  --text-4xl: 2.25rem;     /* 36px */
+  --text-5xl: 3rem;        /* 48px - Hero title */
+  --text-6xl: 3.75rem;     /* 60px - Large hero */
+}
+
+/* Dark Mode */
+[data-theme="dark"] {
+  --bg-main: #0A0A0F;
+  --bg-surface: #12121A;
+  --bg-card: #1A1A25;
+  --bg-elevated: #222230;
+  
+  --primary: #00D4E6;
+  --primary-light: #00E8FC;
+  --primary-dark: #00A3B0;
+  
+  --accent: #818CF8;
+  --accent-light: #A5B4FC;
+  --accent-dark: #6366F1;
+  
+  --border: #2A2A3A;
+  --border-light: #333344;
+  --border-dark: #1A1A25;
+  
+  --text-primary: #F9FAFB;
+  --text-secondary: #E5E7EB;
+  --text-tertiary: #9CA3AF;
+  --text-muted: #6B7280;
+  
+  --shadow-color: 0, 0, 0;
+  --glow-primary: rgba(0, 212, 230, 0.5);
+  --glow-accent: rgba(129, 140, 248, 0.5);
+}
+
+/* ========================================
+   BASE STYLES
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 16px;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1.6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ========================================
+   TYPOGRAPHY - Professional Scale
+   Inspired by Claude.ai & ChatGPT
+   ======================================== */
+
+/* Hero Title - 48px (Claude.ai style) */
+.text-hero {
+  font-size: var(--text-5xl);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .text-hero {
+    font-size: var(--text-6xl);
+  }
+}
+
+/* Section Title - 36px */
+.text-section {
+  font-size: var(--text-3xl);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .text-section {
+    font-size: var(--text-4xl);
+  }
+}
+
+/* Card Title - 24px */
+.text-card-title {
+  font-size: var(--text-xl);
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .text-card-title {
+    font-size: var(--text-2xl);
+  }
+}
+
+/* Body Large - 18px */
+.text-body-lg {
+  font-size: var(--text-lg);
+  line-height: 1.6;
+}
+
+/* Body - 16px (Base) */
+.text-body {
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+
+/* Small - 14px */
+.text-small {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* Caption - 12px */
+.text-caption {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+}
+
+/* ========================================
+   SCROLLBAR
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+  border: 2px solid var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* ========================================
+   SHADOWS & EFFECTS
+   ======================================== */
+
+.shadow-soft {
+  box-shadow: 0 2px 20px rgba(var(--shadow-color), 0.04),
+              0 4px 40px rgba(var(--shadow-color), 0.02);
+}
+
+.shadow-card {
+  box-shadow: 0 4px 30px rgba(var(--shadow-color), 0.06),
+              0 8px 60px rgba(var(--shadow-color), 0.03);
+}
+
+.shadow-elevated {
+  box-shadow: 0 8px 40px rgba(var(--shadow-color), 0.08),
+              0 16px 80px rgba(var(--shadow-color), 0.04);
+}
+
+.shadow-glow {
+  box-shadow: 0 0 40px var(--glow-primary),
+              0 0 80px var(--glow-accent);
+}
+
+[data-theme="dark"] .shadow-soft {
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.2),
+              0 4px 40px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .shadow-card {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3),
+              0 8px 60px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .shadow-elevated {
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4),
+              0 16px 80px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   GLASSMORPHISM
+   ======================================== */
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .glass {
+  background: rgba(18, 18, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .glass-strong {
+  background: rgba(18, 18, 26, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ========================================
+   GRID PATTERN
+   ======================================== */
+
+.grid-pattern {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  background-position: center center;
+}
+
+[data-theme="dark"] .grid-pattern {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* ========================================
+   ANIMATIONS - Core
+   ======================================== */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes fade-in-scale {
+  from { 
+    opacity: 0; 
+    transform: scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+}
+
+/* ========================================
+   ANIMATIONS - Advanced
+   ======================================== */
+
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes gradient-xy {
+  0%, 100% { 
+    background-position: 0% 0%; 
+  }
+  25% { 
+    background-position: 100% 0%; 
+  }
+  50% { 
+    background-position: 100% 100%; 
+  }
+  75% { 
+    background-position: 0% 100%; 
+  }
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0) rotate(0deg); 
+  }
+  50% { 
+    transform: translateY(-20px) rotate(2deg); 
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% { 
+    transform: translateY(0) scale(1); 
+  }
+  50% { 
+    transform: translateY(-40px) scale(1.05); 
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes pulse-ring {
+  0% { 
+    transform: scale(1); 
+    opacity: 0.8; 
+  }
+  100% { 
+    transform: scale(1.5); 
+    opacity: 0; 
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% { 
+    transform: translateY(0); 
+  }
+  50% { 
+    transform: translateY(-8px); 
+  }
+}
+
+/* ========================================
+   ANIMATION CLASSES
+   ======================================== */
+
+.animate-fade-in {
+  animation: fade-in 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-gradient-x {
+  animation: gradient-x 4s ease infinite;
+  background-size: 200% 200%;
+}
+
+.animate-gradient-xy {
+  animation: gradient-xy 8s ease infinite;
+  background-size: 200% 200%;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 10s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+/* ========================================
+   ANIMATION DELAYS
+   ======================================== */
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-800 { animation-delay: 800ms; }
+.delay-1000 { animation-delay: 1000ms; }
+.delay-1200 { animation-delay: 1200ms; }
+.delay-1500 { animation-delay: 1500ms; }
+
+/* ========================================
+   AURORA BACKGROUND EFFECT
+   ======================================== */
+
+.aurora {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: float-slow 15s ease-in-out infinite;
+}
+
+.aurora-blob-1 {
+  width: 500px;
+  height: 500px;
+  background: var(--glow-primary);
+  top: -10%;
+  left: -10%;
+  animation-delay: 0s;
+}
+
+.aurora-blob-2 {
+  width: 400px;
+  height: 400px;
+  background: var(--glow-accent);
+  top: 20%;
+  right: -5%;
+  animation-delay: -5s;
+}
+
+.aurora-blob-3 {
+  width: 300px;
+  height: 300px;
+  background: var(--glow-primary);
+  bottom: 10%;
+  left: 20%;
+  animation-delay: -10s;
+}
+
+/* ========================================
+   PARTICLES
+   ======================================== */
+
+.particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: var(--primary);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: float 8s ease-in-out infinite;
+}
+
+[data-theme="dark"] .particle {
+  opacity: 0.5;
+  box-shadow: 0 0 6px var(--primary);
+}
+
+/* ========================================
+   HOVER EFFECTS
+   ======================================== */
+
+.hover-lift {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(var(--shadow-color), 0.1);
+}
+
+.hover-glow {
+  transition: box-shadow 0.4s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 30px var(--glow-primary);
+}
+
+.hover-scale {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* ========================================
+   TEXT GRADIENTS
+   ======================================== */
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-animated {
+  background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-x 3s ease infinite;
+}
+
+/* ========================================
+   FOCUS & SELECTION
+   ======================================== */
+
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--primary);
+  color: white;
+}
+
+/* ========================================
+   SMOOTH TRANSITIONS
+   ======================================== */
+
+button, a, input, textarea {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   LOADING SKELETON
+   ======================================== */
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-surface) 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ========================================
+   MAGNETIC BUTTON EFFECT (CSS-only)
+   ======================================== */
+
+.magnetic-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.magnetic-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+    rgba(255, 255, 255, 0.15) 0%, 
+    transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.magnetic-button:hover::before {
+  opacity: 1;
+}
+
+/* ========================================
+   CARD 3D EFFECT
+   ======================================== */
+
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-3d:hover {
+  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateZ(10px);
+}
+
+/* ========================================
+   UNDERLINE ANIMATION
+   ======================================== */
+
+.underline-animation {
+  position: relative;
+}
+
+.underline-animation::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.underline-animation:hover::after {
+  width: 100%;
+}
+
+/* ========================================
+   GLOW BORDER
+   ======================================== */
+
+.glow-border {
+  position: relative;
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: -1;
+}
+
+.glow-border:hover::before {
+  opacity: 1;
+}
+
+/* ========================================
+   SPACING UTILITIES
+   ======================================== */
+
+.section-padding {
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+}
+
+@media (min-width: 768px) {
+  .section-padding {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-padding {
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+  }
+}
+
+/* ========================================
+   CONTAINER
+   ======================================== */
+
+.container-tight {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .container-tight {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* ========================================
+   RESPONSIVE TYPOGRAPHY SCALE
+   ======================================== */
+
+@media (max-width: 640px) {
+  html {
+    font-size: 15px;
+  }
+  
+  .text-hero {
+    font-size: 2.25rem;
+    line-height: 1.15;
+  }
+  
+  .text-section {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  html {
+    font-size: 17px;
+  }
+}
