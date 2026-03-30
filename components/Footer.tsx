@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Github, Twitter, Linkedin, Mail, Heart, Crown } from "lucide-react";
+import { Github, Mail, Heart, Crown } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 export default function Footer() {
@@ -42,8 +42,6 @@ export default function Footer() {
 
   const socialLinks = [
     { icon: Github, href: "https://github.com/juniordias1995-afk/makan72-public", label: "GitHub" },
-    { icon: Twitter, href: "#", label: "Twitter" },
-    { icon: Linkedin, href: "#", label: "LinkedIn" },
     { icon: Mail, href: "mailto:hello@makan72.com", label: "Email" },
   ];
 
@@ -113,22 +111,15 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Newsletter */}
+          {/* Newsletter - Coming Soon */}
           <div>
             <h4 className="text-sm font-display font-semibold text-text-primary mb-3 flex items-center gap-2 uppercase tracking-wider">
               <Crown className="h-3 w-3 text-primary" />
               {t.newsletter}
             </h4>
-            <div className="space-y-2">
-              <input
-                type="email"
-                placeholder={t.newsletterPlaceholder}
-                className="w-full rounded-lg border border-border/50 bg-bg-main/50 px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:border-primary focus:outline-none transition-colors"
-              />
-              <button className="w-full rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-dark hover:shadow-md">
-                {t.subscribe}
-              </button>
-            </div>
+            <p className="text-sm text-text-secondary">
+              {lang === "PT" ? "Em breve!" : "Coming soon!"}
+            </p>
           </div>
         </div>
 

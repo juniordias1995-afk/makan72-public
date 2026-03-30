@@ -45,17 +45,17 @@ export default function Hero() {
   return (
     <section className="relative flex min-h-[90vh] items-center justify-center overflow-hidden pt-20">
       {/* Aurora Background Effect */}
-      <div className="aurora">
+      <div className="aurora" aria-hidden="true">
         <div className="aurora-blob aurora-blob-1" />
         <div className="aurora-blob aurora-blob-2" />
         <div className="aurora-blob aurora-blob-3" />
       </div>
       
       {/* Grid Pattern */}
-      <div className="absolute inset-0 grid-pattern opacity-[0.02]" />
+      <div className="absolute inset-0 grid-pattern opacity-[0.02]" aria-hidden="true" />
       
       {/* Particles */}
-      <div className="particles">
+      <div className="particles" aria-hidden="true">
         <div className="particle top-[20%] left-[10%] delay-100" />
         <div className="particle top-[40%] left-[80%] delay-300" />
         <div className="particle top-[60%] left-[30%] delay-500" />

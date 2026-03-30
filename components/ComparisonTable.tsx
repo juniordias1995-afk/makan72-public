@@ -18,7 +18,7 @@ export default function ComparisonTable() {
         <div className="text-center">
           <h2 className="font-display text-3xl font-bold md:text-5xl">
             Porquê{" "}
-            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Makan72
             </span>
           </h2>

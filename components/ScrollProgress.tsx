@@ -55,7 +55,7 @@ export default function ScrollProgress({
       <div className={`${heightClasses[height]} w-full bg-bg-surface/50 backdrop-blur-sm`}>
         {/* Progress bar */}
         <div 
-          className={`${heightClasses[height]} ${colorClasses[color]} transition-all duration-300 ease-out`}
+          className={`${heightClasses[height]} ${colorClasses[color]} relative overflow-hidden transition-all duration-300 ease-out`}
           style={{ width: `${scrollProgress}%` }}
         >
           {/* Glow effect */}

@@ -89,8 +89,8 @@ export default function BackToTop({
                 />
                 <defs>
                   <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#00A3B0" />
-                    <stop offset="100%" stopColor="#6366F1" />
+                    <stop offset="0%" style={{ stopColor: 'var(--primary)' }} />
+                    <stop offset="100%" style={{ stopColor: 'var(--accent)' }} />
                   </linearGradient>
                 </defs>
               </svg>

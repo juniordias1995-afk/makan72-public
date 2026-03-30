@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useId } from "react";
 
 interface TooltipProps {
   children: ReactNode;
@@ -21,6 +21,7 @@ export default function Tooltip({
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const id = useId();
 
   const showTooltip = () => {
     if (timeoutId) clearTimeout(timeoutId);
@@ -54,13 +55,14 @@ export default function Tooltip({
       onMouseLeave={hideTooltip}
       onFocus={showTooltip}
       onBlur={hideTooltip}
-      role="tooltip"
-      aria-label={content}
+      aria-describedby={`tooltip-${id}`}
     >
       {children}
       
       {isVisible && (
         <div 
+          id={`tooltip-${id}`}
+          role="tooltip"
           className={`absolute z-50 ${positionClasses[position]} pointer-events-none`}
           style={{ maxWidth }}
         >

@@ -13,19 +13,19 @@ export default function HowItWorks() {
       steps: [
         {
           icon: CloudUpload,
-          title: "Connect",
+          title: "Conectar",
           desc: "Liga qualquer agente IA ao sistema em minutos. Sem código. Sem complicação.",
           color: "primary",
         },
         {
           icon: Cpu,
-          title: "Enhance",
+          title: "Potenciar",
           desc: "O sistema injeta memória colectiva, contexto e disciplina operacional. Instantaneamente.",
           color: "accent",
         },
         {
           icon: Rocket,
-          title: "Execute",
+          title: "Executar",
           desc: "Agentes alinhados executam com precisão e reportam resultados. Você apenas aprova.",
           color: "primary",
         },

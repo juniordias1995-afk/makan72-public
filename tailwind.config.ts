@@ -53,6 +53,7 @@ const config: Config = {
       boxShadow: {
         'soft': '0 2px 20px rgba(0, 0, 0, 0.04), 0 4px 40px rgba(0, 0, 0, 0.02)',
         'card': '0 4px 30px rgba(0, 0, 0, 0.06), 0 8px 60px rgba(0, 0, 0, 0.03)',
+        'card-hover': '0 20px 40px -12px rgba(0, 163, 176, 0.25)',
         'elevated': '0 8px 40px rgba(0, 0, 0, 0.08), 0 16px 80px rgba(0, 0, 0, 0.04)',
       },
       animation: {

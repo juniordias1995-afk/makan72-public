@@ -133,6 +133,9 @@ export default function Navbar() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/50 text-text-secondary transition-all hover:border-primary/30 hover:text-primary md:hidden"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
             >
               {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
@@ -142,6 +145,8 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       <div
+        id="mobile-menu"
+        aria-hidden={!mobileMenuOpen}
         className={`fixed inset-x-4 top-16 z-50 rounded-xl glass-strong shadow-elevated transition-all duration-300 md:hidden ${
           mobileMenuOpen
             ? "opacity-100 translate-y-0"
@@ -156,6 +161,7 @@ export default function Navbar() {
                   href={item.href}
                   className="block rounded-lg px-4 py-2.5 text-body text-text-secondary transition-colors hover:bg-primary/5 hover:text-primary"
                   onClick={() => setMobileMenuOpen(false)}
+                  tabIndex={mobileMenuOpen ? 0 : -1}
                 >
                   {item.label}
                 </Link>
@@ -167,17 +173,19 @@ export default function Navbar() {
             <div className="flex items-center gap-1 rounded-lg border border-border/50 p-0.5">
               <button
                 onClick={() => setLang('PT')}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                   lang === 'PT' ? 'bg-primary text-white' : 'text-text-secondary'
                 }`}
+                tabIndex={mobileMenuOpen ? 0 : -1}
               >
                 PT
               </button>
               <button
                 onClick={() => setLang('EN')}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                   lang === 'EN' ? 'bg-primary text-white' : 'text-text-secondary'
                 }`}
+                tabIndex={mobileMenuOpen ? 0 : -1}
               >
                 EN
               </button>
@@ -188,6 +196,7 @@ export default function Navbar() {
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-lg border border-primary/30 px-3 py-1.5 text-sm font-medium text-primary"
+              tabIndex={mobileMenuOpen ? 0 : -1}
             >
               <Github className="h-4 w-4" />
               GitHub
