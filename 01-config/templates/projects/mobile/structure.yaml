@@ -1,0 +1,122 @@
+# Estrutura específica para projectos Mobile (Flutter)
+folders:
+  - lib/screens/
+  - lib/widgets/
+  - lib/models/
+  - lib/providers/
+  - lib/services/
+  - lib/utils/
+  - assets/images/
+  - assets/fonts/
+  - tests/
+
+files:
+  - name: lib/main.dart
+    content: |
+      import 'package:flutter/material.dart';
+
+      void main() {
+        runApp(const MyApp());
+      }
+
+      class MyApp extends StatelessWidget {
+        const MyApp({super.key});
+
+        @override
+        Widget build(BuildContext context) {
+          return MaterialApp(
+            title: '{PROJECT_NAME}',
+            theme: ThemeData(
+              colorSchemeSeed: Colors.blue,
+              useMaterial3: true,
+            ),
+            home: const HomeScreen(),
+          );
+        }
+      }
+
+  - name: lib/screens/home_screen.dart
+    content: |
+      import 'package:flutter/material.dart';
+
+      class HomeScreen extends StatelessWidget {
+        const HomeScreen({super.key});
+
+        @override
+        Widget build(BuildContext context) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('{PROJECT_NAME}')),
+            body: const Center(
+              child: Text('Welcome to {PROJECT_NAME}'),
+            ),
+          );
+        }
+      }
+
+  - name: pubspec.yaml
+    content: |
+      name: {PROJECT_NAME_LOWER}
+      description: "{PROJECT_NAME} — Flutter app"
+      version: 0.1.0
+
+      environment:
+        sdk: ">=3.0.0 <4.0.0"
+
+      dependencies:
+        flutter:
+          sdk: flutter
+        flutter_riverpod: ^2.4.0
+
+      dev_dependencies:
+        flutter_test:
+          sdk: flutter
+        flutter_lints: ^3.0.0
+
+  - name: docs/DESIGN.md
+    content: |
+      # Design da App
+
+      ## Ecrãs
+      - [ ] Home
+      - [ ] Settings
+      - [ ] (adicionar mais)
+
+      ## Navegação
+      (bottom nav / drawer / stack)
+
+      ## Assets
+      - [ ] App icon
+      - [ ] Splash screen
+
+  - name: docs/STACK.md
+    content: |
+      # Stack Tecnológica
+
+      - **Framework:** Flutter 3.x
+      - **Linguagem:** Dart
+      - **State:** Riverpod
+      - **Testes:** flutter_test
+      - **Platforms:** iOS + Android
+
+steps:
+  - name: design
+    description: "Criar mockup e definir ecrãs"
+    action: "Preencher docs/DESIGN.md"
+  - name: ui
+    description: "Criar screens e widgets"
+    action: "Implementar em lib/screens/ e lib/widgets/"
+  - name: state
+    description: "Configurar state management"
+    action: "Implementar em lib/providers/"
+  - name: logic
+    description: "Business logic e serviços"
+    action: "Implementar em lib/services/"
+  - name: assets
+    description: "Adicionar imagens, fonts, icons"
+    action: "Colocar em assets/"
+  - name: test
+    description: "Testar em emulador/dispositivo"
+    action: "flutter test && flutter run"
+  - name: build
+    description: "Build para iOS + Android"
+    action: "flutter build apk && flutter build ios"

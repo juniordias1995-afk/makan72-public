@@ -1,0 +1,19 @@
+name: "web"
+display_name: "Web Site/App"
+description: "Template para sites e aplicações web"
+version: "1.0.0"
+
+stack:
+  frontend: "React 18 + Vite + TypeScript"
+  styling: "Tailwind CSS"
+  backend: "(opcional) FastAPI ou Node.js"
+  deploy: "Vercel (frontend) + Railway (backend)"
+
+tags:
+  - web
+  - frontend
+  - react
+  - typescript
+
+difficulty: "Média"
+estimated_time: "1-4 semanas"

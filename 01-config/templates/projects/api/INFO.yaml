@@ -1,0 +1,20 @@
+name: "api"
+display_name: "API / Backend"
+description: "Template para APIs REST com FastAPI"
+version: "1.0.0"
+
+stack:
+  framework: "FastAPI (Python 3.11+)"
+  validation: "Pydantic v2"
+  database: "(opcional) PostgreSQL + SQLAlchemy"
+  docs: "Swagger UI (auto-gerado)"
+  deploy: "Railway, Render, ou Docker"
+
+tags:
+  - api
+  - backend
+  - fastapi
+  - python
+
+difficulty: "Média"
+estimated_time: "1-3 semanas"

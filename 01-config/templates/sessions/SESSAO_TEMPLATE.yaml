@@ -1,0 +1,34 @@
+# SESSAO_HOJE.yaml — Template de Sessão
+# Copiar para 00-global/SESSAO_HOJE.yaml e preencher
+
+sessao:
+  data: "YYYY-MM-DD"
+  projecto: "{NOME_DO_PROJECTO}"
+  projecto_path: "{PATH_DO_PROJECTO}"
+  missao: "{DESCRIÇÃO DA MISSÃO DO DIA}"
+  tipo_execucao: "semi-auto"   # semi-auto | manual | full-auto
+  verbosidade: "COMPACTO"      # MINIMO | COMPACTO | COMPLETO
+
+# MODOs são DINÂMICOS — atribuídos por sessão pelo CEO/Líder.
+# Qualquer agente pode ter qualquer MODO.
+# Códigos: ML (Líder), MSL (Sub-Líder), MPL (Planificador),
+#          MC (Construtor), MD (Debugger), MR (Revisor),
+#          MA (Auditor), MO (Operário), MP (Pesquisador), MPR (Designer)
+modos_desta_sessao:
+  # AGENTE: ["MODO1", "MODO2"]
+  # Exemplo:
+  # CLAUDE: ["ML", "MR"]
+  # QWEN: ["MC", "MO"]
+
+agentes_activos: []
+  # - CLAUDE
+  # - QWEN
+
+agentes_pausados: []
+  # - GEMINI
+
+tarefas: []
+  # - nome_tarefa: "PENDENTE"
+  # - outra_tarefa: "FEITO"
+
+estado: "EM_CURSO"   # EM_CURSO | PAUSA | CONCLUIDO

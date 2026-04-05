@@ -1,0 +1,26 @@
+# BOT_RULES.yaml — Regras de protecção do team-bot
+# Copiado para 02-bots/config/BOT_RULES.yaml pelo setup.sh
+
+# Ficheiros que o bot NUNCA pode apagar ou modificar
+sacred_files:
+  - "00-global/VERDADE.md"
+  - "00-global/VACINAS.md"
+  - "01-config/team.yaml"
+  - "01-config/agents.json"
+  - "VERSION"
+  - "README.md"
+
+# Limites de operação
+limits:
+  max_files_per_operation: 50     # Máximo de ficheiros por operação
+  max_delete_per_run: 20          # Máximo de ficheiros apagados por execução
+  require_backup_before_delete: true  # Obrigatório fazer backup antes de apagar
+
+# TTLs (time-to-live) — quanto tempo cada tipo de ficheiro vive
+ttl:
+  reports_days: 30          # Relatórios > 30 dias → arquivo
+  logs_days: 7              # Logs > 7 dias → apagar
+  cache_hours: 24           # Cache > 24h → apagar
+  heartbeat_hours: 24       # Heartbeats > 24h → apagar
+  handoff_read_hours: 48    # Handoffs lidos > 48h → apagar
+  done_tasks_days: 14       # Tarefas concluídas > 14 dias → arquivo

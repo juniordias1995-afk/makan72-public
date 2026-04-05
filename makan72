@@ -1,0 +1,912 @@
+#!/usr/bin/env bash
+# makan72 — CLI Wrapper Unificado
+set -euo pipefail
+
+MAKAN72_HOME="${MAKAN72_HOME:-$HOME/.Makan72}"
+VERSION=$(cat "$MAKAN72_HOME/VERSION" 2>/dev/null || echo "unknown")
+PROJECTS_FILE="$MAKAN72_HOME/01-config/projects.json"
+AGENTS_FILE="$MAKAN72_HOME/01-config/agents.json"
+SESSAO_FILE="$MAKAN72_HOME/00-global/SESSAO_HOJE.yaml"
+
+# Carregar funcoes partilhadas
+FUNCTIONS_FILE="$MAKAN72_HOME/05-scripts/core/makan72-functions.sh"
+[ -f "$FUNCTIONS_FILE" ] && source "$FUNCTIONS_FILE"
+
+# Cores
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+error() { echo -e "${RED}ERRO:${NC} $1" >&2; exit 1; }
+success() { echo -e "${GREEN}$1${NC}"; }
+info() { echo -e "${BLUE}$1${NC}"; }
+header() { echo -e "${CYAN}$1${NC}"; }
+
+# === PROJECT MANAGEMENT ===
+cmd_project() {
+    bash "$MAKAN72_HOME/05-scripts/core/manage-projects.sh" "$@"
+}
+
+# === AGENTS ===
+cmd_agent() {
+    local subcmd="${1:-}"
+    case "$subcmd" in
+        start)
+            shift
+            bash "$MAKAN72_HOME/05-scripts/core/start-agent.sh" "$@"
+            ;;
+        stop|attach|sessions|cleanup)
+            shift
+            bash "$MAKAN72_HOME/05-scripts/core/manage-agents.sh" "$subcmd" "$@"
+            ;;
+        *)
+            bash "$MAKAN72_HOME/05-scripts/core/manage-agents.sh" "$@"
+            ;;
+    esac
+}
+
+# === SYSTEM ===
+cmd_start() {
+    # Passo 1: Auto-detectar projecto + pedir missão (interactivo — visível)
+    local PROJECT="${PROJECT:-}"
+    local MISSION="${MISSION:-}"
+    local LEADER="${LEADER:-CEO}"
+
+    # Parse argumentos --project=, --mission=, --leader=
+    local args=()
+    for arg in "$@"; do
+        case "$arg" in
+            --project=*) PROJECT="${arg#*=}" ;;
+            --mission=*) MISSION="${arg#*=}" ;;
+            --leader=*)  LEADER="${arg#*=}" ;;
+            *) args+=("$arg") ;;
+        esac
+    done
+
+    # Auto-detectar projecto activo
+    if [[ -z "$PROJECT" ]]; then
+        local PROJECTS_FILE="$MAKAN72_HOME/01-config/projects.json"
+        if [[ -f "$PROJECTS_FILE" ]]; then
+            PROJECT=$(jq -r '.projects[] | select(.active==true) | .name' "$PROJECTS_FILE" 2>/dev/null | head -1)
+            [[ "$PROJECT" == "null" ]] && PROJECT=""
+        fi
+    fi
+
+    # Perguntas interactivas
+    if [[ -n "$PROJECT" ]]; then
+        echo -e "Projecto: ${CYAN}$PROJECT${NC} (auto)"
+    else
+        read -p "Projecto: " PROJECT
+    fi
+    [[ -z "$MISSION" ]] && read -p "Missão: " MISSION
+
+    if [[ -z "$PROJECT" || -z "$MISSION" ]]; then
+        echo -e "${RED}ERRO:${NC} Projecto e Missão são obrigatórios" >&2
+        return 1
+    fi
+
+    # === PASSO SLOTS: Mostrar default e perguntar ===
+    # Ler defaults do agents.json (campo "tab")
+    local _slot_default=""
+    local _slot_display=""
+    for _sn in 1 2 3 4 5; do
+        local _ag
+        _ag=$(jq -r --argjson t "$_sn" \
+            '.agents[] | select(.status=="active" and .tab==$t) | .code' \
+            "$AGENTS_FILE" 2>/dev/null | head -1)
+        if [[ -n "$_ag" && "$_ag" != "null" ]]; then
+            _slot_default="${_slot_default}${_sn}:${_ag} "
+            _slot_display="${_slot_display} ${_sn}:${GREEN}${_ag}${NC}"
+        else
+            _slot_display="${_slot_display} ${_sn}:${YELLOW}—${NC}"
+        fi
+    done
+    _slot_default="${_slot_default% }"
+
+    echo -e "Slots [${_slot_display} ]"
+    read -p "Enter=aceitar, ou novo (ex: 1:QWEN,2:CLAUDE,3:GEMINI): " SLOT_INPUT
+
+    # Se user digitou algo, aplicar as mudanças ao agents.json
+    if [[ -n "$SLOT_INPUT" ]]; then
+        # Parse: "1:CLAUDE,2:QWEN,3:GEMINI" ou "4:OPENCODE"
+        local _pairs="${SLOT_INPUT//,/ }"
+        local _tmp_agents="/tmp/m72_agents_$$.json"
+
+        # Recolher slots e codes em arrays
+        local _slots_arr=()
+        local _codes_arr=()
+        for _pair in $_pairs; do
+            local _slot_n="${_pair%%:*}"
+            local _slot_code="${_pair##*:}"
+            _slot_code="${_slot_code^^}"
+            if [[ "$_slot_n" =~ ^[1-5]$ ]]; then
+                _slots_arr+=("$_slot_n")
+                _codes_arr+=("$_slot_code")
+            fi
+        done
+
+        # Construir JSON array dos pares para jq processar de uma vez
+        local _jq_pairs="["
+        for _i in "${!_slots_arr[@]}"; do
+            [[ $_i -gt 0 ]] && _jq_pairs+=","
+            _jq_pairs+="{\"slot\":${_slots_arr[$_i]},\"code\":\"${_codes_arr[$_i]}\"}"
+        done
+        _jq_pairs+="]"
+
+        # Aplicar TUDO de uma vez: limpar slots mencionados + codes mencionados, depois atribuir
+        jq --argjson pairs "$_jq_pairs" '
+            ($pairs | map(.slot)) as $slots_to_clear |
+            ($pairs | map(.code)) as $codes_to_clear |
+            .agents = [.agents[] |
+                # Primeiro: limpar tab de quem vai ser movido ou de quem ocupa os slots
+                if (.code as $c | $codes_to_clear | index($c)) != null then .tab = 0
+                elif (.tab as $t | $slots_to_clear | index($t)) != null then .tab = 0
+                else . end
+            ] |
+            # Depois: atribuir os novos slots
+            reduce $pairs[] as $p (.;
+                .agents = [.agents[] | if .code == $p.code then .tab = $p.slot else . end]
+            )
+        ' "$AGENTS_FILE" > "$_tmp_agents" && cp "$_tmp_agents" "$AGENTS_FILE"
+        rm -f "$_tmp_agents"
+        echo -e "${GREEN}Slots actualizados.${NC}"
+    fi
+
+    # Mostrar configuração final
+    echo ""
+    for _sn in 1 2 3 4 5; do
+        local _ag
+        _ag=$(jq -r --argjson t "$_sn" \
+            '.agents[] | select(.status=="active" and .tab==$t) | .code' \
+            "$AGENTS_FILE" 2>/dev/null | head -1)
+        if [[ -n "$_ag" && "$_ag" != "null" ]]; then
+            echo -e "  Slot-${_sn}: ${GREEN}${_ag}${NC} (auto-start)"
+        fi
+    done
+    echo ""
+
+    # Passo 2: Setup administrativo (SILENCIOSO — log)
+    local LOG_FILE="$MAKAN72_HOME/08-logs/start-session.log"
+    mkdir -p "$MAKAN72_HOME/08-logs"
+    bash "$MAKAN72_HOME/05-scripts/utils/start-session.sh" \
+        --project="$PROJECT" --mission="$MISSION" --leader="$LEADER" \
+        > "$LOG_FILE" 2>&1
+    local exit_code=$?
+
+    if [[ $exit_code -ne 0 ]]; then
+        echo -e "${RED}ERRO:${NC} Falha no setup da sessão. Ver: $LOG_FILE" >&2
+        return $exit_code
+    fi
+
+    echo -e "${GREEN}✅${NC} Sessão: ${CYAN}$PROJECT${NC} → $MISSION"
+    echo ""
+
+    # Passo 3: Lançar workspace visual (Zellij)
+    if [[ -n "${ZELLIJ:-}" ]]; then
+        echo -e "${YELLOW}AVISO:${NC} Já estás numa sessão Zellij. Usa 'makan72 launch' para nova sessão." >&2
+        return 0
+    fi
+
+    if command -v zellij &>/dev/null; then
+        cmd_launch
+    else
+        echo -e "${YELLOW}AVISO:${NC} Zellij não disponível. Sessão iniciada sem workspace visual." >&2
+    fi
+}
+
+cmd_stop() {
+    if [[ "${1:-}" == "--all" ]]; then
+        # T3: Matar todos os agentes e fechar sessão
+        m72_clean_all 2>/dev/null || true
+        bash "$MAKAN72_HOME/05-scripts/utils/end-session.sh"
+    elif [[ -n "${1:-}" ]]; then
+        # Matar agente específico — converter CODE para cli
+        local agent_code="$1"
+        local agent_cli
+        agent_cli=$(jq -r --arg code "$agent_code" 
+            '.agents[] | select(.code == $code) | .cli' 
+            "$AGENTS_FILE" 2>/dev/null)
+
+        if [[ -z "$agent_cli" || "$agent_cli" == "null" ]]; then
+            echo -e "${RED}ERRO: Agente '$agent_code' não encontrado em agents.json${NC}"
+            echo "Usa: makan72 agent list para ver agentes disponíveis"
+            return 1
+        fi
+
+        # Matar sessão do agente
+        m72_kill_agent "$agent_cli"
+        echo -e "${GREEN}Agente $agent_code ($agent_cli) parado${NC}"
+    else
+        # Sem argumentos — apenas fechar sessão
+        bash "$MAKAN72_HOME/05-scripts/utils/end-session.sh"
+    fi
+}
+
+cmd_status() {
+    bash "$MAKAN72_HOME/05-scripts/utils/show-status.sh" "$@"
+}
+
+cmd_peek() {
+    local agent_code="${1:-}"
+
+    if [[ -z "$agent_code" ]]; then
+        echo -e "${RED}ERRO: Especifica o agente. Ex: makan72 peek CLAUDE${NC}"
+        return 1
+    fi
+
+    # Converter CODE para cli
+    local agent_cli
+    agent_cli=$(jq -r --arg code "$agent_code" 
+        '.agents[] | select(.code == $code) | .cli' 
+        "$AGENTS_FILE" 2>/dev/null)
+
+    if [[ -z "$agent_cli" || "$agent_cli" == "null" ]]; then
+        echo -e "${RED}ERRO: Agente '$agent_code' não encontrado em agents.json${NC}"
+        return 1
+    fi
+
+    # Converter cli para slot number via active_slots.json
+    local slots_file="$MAKAN72_HOME/04-bus/active_slots.json"
+    if [[ ! -f "$slots_file" ]]; then
+        echo -e "${YELLOW}Nenhuma sessão activa${NC}"
+        return 0
+    fi
+
+    local slot_num
+    slot_num=$(jq -r --arg cli "$agent_cli" 
+        '.slots[] | select(.cli == $cli) | .slot' 
+        "$slots_file" 2>/dev/null)
+
+    if [[ -z "$slot_num" || "$slot_num" == "null" ]]; then
+        echo -e "${YELLOW}Agente $agent_code não tem sessão activa${NC}"
+        return 0
+    fi
+
+    m72_get_output "$slot_num"
+}
+
+cmd_checkpoint() {
+    bash "$MAKAN72_HOME/05-scripts/utils/checkpoint.sh" "$@"
+}
+
+cmd_verify() {
+    bash "$MAKAN72_HOME/05-scripts/utils/verify-claim.sh" "$@"
+}
+
+cmd_audit() {
+    bash "$MAKAN72_HOME/05-scripts/utils/audit-log.sh" "$@"
+}
+
+cmd_dashboard() {
+    source "$MAKAN72_HOME/02-bots/lib/visualizer.sh" 2>/dev/null || {
+        echo -e "${RED}ERRO: visualizer.sh não encontrado${NC}"
+        return 1
+    }
+    visualizer_run "$@"
+}
+
+
+cmd_setup() {
+    if [[ "${1:-}" == "hooks" ]]; then
+        bash "$MAKAN72_HOME/05-scripts/utils/setup-hooks.sh"
+    else
+        bash "$MAKAN72_HOME/setup.sh" "$@"
+    fi
+}
+cmd_health() {
+    local mode="${1:-quick}"
+    if [[ "$mode" == "full" ]]; then
+        bash "$MAKAN72_HOME/05-scripts/utils/health-check.sh"
+    else
+        bash "$MAKAN72_HOME/05-scripts/utils/health-check.sh" quick
+    fi
+}
+
+# === BOT ===
+cmd_bot() {
+    bash "$MAKAN72_HOME/02-bots/team-bot.sh" "$@"
+}
+
+# === GATE ===
+cmd_gate() {
+    bash "$MAKAN72_HOME/05-scripts/core/gate.sh" "$@"
+}
+
+# === SHIELD ===
+cmd_shield() {
+    bash "$MAKAN72_HOME/05-scripts/core/shield.sh" "$@"
+}
+
+# === INFO ===
+cmd_info() {
+    echo "Makan72 v$VERSION"
+    echo "=========================================="
+    
+    # Home
+    echo "  Home:     $MAKAN72_HOME"
+    
+    # Agentes (jq — seguro com paths que têm espaços/aspas)
+    if [[ -f "$AGENTS_FILE" ]]; then
+        local active_count=$(jq '[.agents[] | select(.status=="active")] | length' "$AGENTS_FILE" 2>/dev/null || echo 0)
+        local paused_count=$(jq '[.agents[] | select(.status=="paused")] | length' "$AGENTS_FILE" 2>/dev/null || echo 0)
+        echo "  Agentes:  $active_count activos, $paused_count pausados"
+    else
+        echo "  Agentes:  N/A"
+    fi
+
+    # Projecto (jq — sem Python inline)
+    if [[ -f "$PROJECTS_FILE" ]]; then
+        local active_project=$(jq -r '.active_project // empty' "$PROJECTS_FILE" 2>/dev/null)
+        if [[ -n "$active_project" ]]; then
+            local proj_name=$(jq -r --arg id "$active_project" '.projects[] | select(.id==$id) | .name // "N/A"' "$PROJECTS_FILE" 2>/dev/null)
+            local proj_path=$(jq -r --arg id "$active_project" '.projects[] | select(.id==$id) | .path // "N/A"' "$PROJECTS_FILE" 2>/dev/null)
+            echo "  Projecto: $proj_name ($proj_path)"
+        else
+            echo "  Projecto: Nenhum activo"
+        fi
+    fi
+
+    # Sessao (grep — sem dependência de Python yaml)
+    if [[ -f "$SESSAO_FILE" ]]; then
+        local sessao_activa=$(grep -E "^\s+activa:" "$SESSAO_FILE" 2>/dev/null | awk '{print $2}' | head -1)
+        if [[ "$sessao_activa" == "true" ]]; then
+            echo "  Sessao:   EM_CURSO"
+        else
+            echo "  Sessao:   INACTIVA"
+        fi
+    else
+        echo "  Sessao:   N/A"
+    fi
+    
+    # Saude
+    echo "  Saude:    OK (use 'makan72 health' para verificar)"
+}
+
+# === LAYOUT ===
+cmd_layout() {
+    cmd_generate_layout "$@"
+}
+
+# === GENERATE LAYOUT (interno) ===
+cmd_generate_layout() {
+    local layouts_dir="$MAKAN72_HOME/01-config/layouts"
+    mkdir -p "$layouts_dir"
+
+    local output_file="$layouts_dir/makan72.kdl"
+
+    # Ler dados dos agentes activos
+    local active_agents=$(python3 << PYEOF
+import json
+with open('$AGENTS_FILE') as f:
+    data = json.load(f)
+agents = [a for a in data.get('agents', []) if a.get('status') == 'active']
+for a in agents:
+    print(f"{a['code']}|{a['cli']}|{a['name']}")
+PYEOF
+)
+
+    # Ler projecto activo
+    local project_name=""
+    local project_path="$MAKAN72_HOME"
+    local template_name=""
+    if [[ -f "$PROJECTS_FILE" ]]; then
+        IFS='|' read -r project_name project_path template_name <<< $(python3 -c "
+import json
+try:
+    with open('$PROJECTS_FILE') as f:
+        data = json.load(f)
+    active_id = data.get('active_project')
+    if active_id:
+        for p in data.get('projects', []):
+            if p.get('id') == active_id:
+                # Tentar detectar template pelo nome ou path
+                template = 'base'
+                print(f\"{p.get('name', 'N/A')}|{p.get('path', '$MAKAN72_HOME')}|{template}\")
+                break
+    else:
+        print('N/A|$MAKAN72_HOME|base')
+except: pass" 2>/dev/null)
+    fi
+
+    # Resolver path relativo → absoluto (evita cwd relativo no KDL)
+    if [[ -n "$project_path" && "$project_path" != /* ]]; then
+        project_path="$(realpath "$project_path" 2>/dev/null || echo "$HOME/$project_path")"
+    fi
+
+    # Gerar KDL — Layout MELHORADO vs .team
+    cat > "$output_file" << KDLEOF
+layout {
+    // CWD global dinâmico (projecto activo)
+    cwd "$project_path"
+
+    // Tab bar compacta — sem branding "Zellij"
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:compact-bar"
+        }
+        children
+        pane size=1 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+
+KDLEOF
+
+
+    # === GERAR 5 SLOTS FIXOS (baseado no campo "tab" de agents.json) ===
+    local TOTAL_SLOTS=5
+
+    # Criar mapa slot→agente baseado no campo "tab"
+    declare -A slot_map  # slot_map[1]="CODE|cli|name"
+    while IFS='|' read -r code cli name tab_num; do
+        [[ -z "$code" ]] && continue
+        [[ "$tab_num" -ge 1 && "$tab_num" -le $TOTAL_SLOTS ]] 2>/dev/null && \
+            slot_map[$tab_num]="$code|$cli|$name"
+    done < <(python3 << PYEOF2
+import json
+with open('$AGENTS_FILE') as f:
+    data = json.load(f)
+agents = [a for a in data.get('agents', []) if a.get('status') == 'active']
+for a in agents:
+    tab = a.get('tab', 0)
+    if tab >= 1 and tab <= $TOTAL_SLOTS:
+        print(f"{a['code']}|{a['cli']}|{a['name']}|{tab}")
+PYEOF2
+)
+
+    local slot_num
+    for slot_num in $(seq 1 $TOTAL_SLOTS); do
+        local agent_entry="${slot_map[$slot_num]:-}"
+        local focus_attr=""
+        [[ $slot_num -eq 1 ]] && focus_attr="focus=true"
+
+        if [[ -n "$agent_entry" ]]; then
+            # SLOT COM AGENTE — auto-start via makan72 agent start
+            IFS='|' read -r _code _cli _name <<< "$agent_entry"
+            cat >> "$output_file" << SLOTEOF
+    tab name="Slot-$slot_num" $focus_attr {
+        pane split_direction="vertical" {
+            pane size="50%" {
+                command "bash"
+                args "-c" "export MAKAN72_HOME=\\"$MAKAN72_HOME\\"; makan72 agent start $_code"
+                name "Slot-$slot_num-$_code"
+            }
+            pane size="50%" {
+                command "bash"
+                args "-c" "echo ''; echo '  ╔════════════════════════════════════════╗'; echo '  ║   SLOT $slot_num · $_code · Terminal        ║'; echo '  ╚════════════════════════════════════════╝'; echo ''; echo '  Terminal livre para:'; echo '    - lazygit / git'; echo '    - testes / comandos'; echo ''; exec bash"
+                name "Slot-$slot_num-Terminal"
+            }
+        }
+    }
+
+SLOTEOF
+        else
+            # SLOT LIVRE — instruções para iniciar manualmente
+            cat >> "$output_file" << SLOTEOF
+    tab name="Slot-$slot_num" $focus_attr {
+        pane split_direction="vertical" {
+            pane size="50%" {
+                command "bash"
+                args "-c" "echo ''; echo '  ╔════════════════════════════════════════╗'; echo '  ║   SLOT $slot_num · [LIVRE]                  ║'; echo '  ╚════════════════════════════════════════╝'; echo ''; echo '  Iniciar agente aqui:'; echo '    makan72 agent start <CODE>'; echo ''; echo '  Agentes disponíveis:'; echo '    makan72 agent list'; echo ''; exec bash"
+                name "Slot-$slot_num-A"
+            }
+            pane size="50%" {
+                command "bash"
+                args "-c" "echo ''; echo '  ╔════════════════════════════════════════╗'; echo '  ║   SLOT $slot_num · Terminal                 ║'; echo '  ╚════════════════════════════════════════╝'; echo ''; exec bash"
+                name "Slot-$slot_num-B"
+            }
+        }
+    }
+
+SLOTEOF
+        fi
+    done
+
+    # Sumário para o CEO
+    for slot_num in $(seq 1 $TOTAL_SLOTS); do
+        local agent_entry="${slot_map[$slot_num]:-}"
+        if [[ -n "$agent_entry" ]]; then
+            IFS='|' read -r _code _cli _name <<< "$agent_entry"
+            echo "  $slot_num. $_code ($_name) — AUTO-START"
+        else
+            echo "  $slot_num. [LIVRE] — makan72 slot set $slot_num <CODE>"
+        fi
+    done
+
+    # Listar MAP com SYS bar
+    echo "  6. MAP | Estrutura 37% + Flow 58% + SYS bar 5%"
+    # Gerar tab MAP (Estrutura 37% + FLOW.txt 58% + SYS bar 5%)
+    cat >> "$output_file" << MAPEOF
+    // ═══════════════════════════════════════════════════════════
+    // Tab MAP — Estrutura + Diagrama + SYS bar (MELHORIA vs .team)
+    // ═══════════════════════════════════════════════════════════
+    tab name="MAP" {
+        pane split_direction="horizontal" {
+            // Conteúdo principal
+            pane split_direction="vertical" {
+                // Estrutura de ficheiros (40%)
+                pane size="40%" {
+                    command "bash"
+                    args "-c" "cd '$project_path' && echo '=== PROJECTO: $project_name ===' && echo '  Path: $project_path' && echo '' && (tree -L 2 --dirsfirst -C -I '__pycache__|node_modules|.git|build|.dart_tool' 2>/dev/null || find . -maxdepth 2 -type f | grep -v '.git/' | head -50) && echo '' && echo '--- Info ---' && echo \"  Ficheiros: \$(find . -type f | grep -v '.git/' | wc -l)\" && echo \"  Git: \$(git branch --show-current 2>/dev/null || echo 'N/A')\" && exec bash"
+                    name "Estrutura"
+                }
+                // Diagrama de fluxo (60%)
+                pane size="60%" {
+                    command "bash"
+                    args "-c" "if [ -f '$project_path/docs/FLOW.txt' ]; then cat '$project_path/docs/FLOW.txt'; else echo ''; echo '  Sem diagrama de fluxo.'; echo ''; echo '  Cria docs/FLOW.txt no projecto'; echo '  para ver o diagrama aqui.'; echo ''; echo '  Dica: makan72 project info'; fi && exec bash"
+                    name "Flow"
+                }
+            }
+            // SYS bar no fundo — 1 linha fixa CPU/GPU/RAM
+            pane size=1 {
+                command "bash"
+                args "-c" "while true; do printf '\r  CPU: %s%%  │  GPU: %s  │  RAM: %s  ' \"\$(top -bn1 | grep 'Cpu(s)' | awk '{printf \"%.0f\", \$2}')\" \"\$(nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '{printf \"%s%% %sMB\", \$1, \$2}' || echo 'N/A')\" \"\$(free -h | awk '/Mem/{printf \"%s/%s\", \$3, \$2}')\"; sleep 5; done"
+                name "SYS"
+            }
+        }
+    }
+MAPEOF
+
+    echo "}" >> "$output_file"
+
+    # Output — mostrar na ordem correcta
+    success "Layout Zellij gerado: $output_file"
+    echo ""
+    echo "Tabs gerados (MELHORADO vs .team):"
+    echo ""
+    echo "MELHORIAS vs .team:"
+    echo "  ✓ File Watcher substitui Terminal (inútil)"
+    echo "  ✓ SYS bar (5%) no MAP — SEM tab Monitor"
+    echo "  ✓ start-agent.sh dinâmico (lê agents.json)"
+    echo "  ✓ cwd dinâmico no projecto activo"
+
+    echo ""
+    echo "Projecto activo: $project_name ($project_path)"
+    if [[ -f "$project_path/docs/FLOW.txt" ]]; then
+        echo "Diagrama: docs/FLOW.txt (SIM)"
+    else
+        echo "Diagrama: docs/FLOW.txt (NAO existe)"
+    fi
+    echo ""
+    echo "Para usar:"
+    echo "  zellij --layout $output_file"
+}
+
+# === HELP ===
+show_help() {
+    echo "Makan72 v$VERSION — Sistema de Orquestracao"
+    echo ""
+    header "PROJECTOS:"
+    echo "  makan72 project create <nome> [path]   Criar novo projecto"
+    echo "  makan72 project register <path>        Registar projecto existente"
+    echo "  makan72 project list                   Listar projectos"
+    echo "  makan72 project switch <nome>          Mudar projecto activo"
+    echo "  makan72 project info [nome]            Detalhes do projecto"
+    echo "  makan72 project remove <nome>          Remover do registo"
+    echo "  makan72 project active                 Ver projecto activo"
+    echo ""
+    header "SESSAO:"
+    echo "  makan72 start                          Iniciar sessao de trabalho"
+    echo "  makan72 stop                           Fechar sessao"
+    echo "  makan72 status                         Ver status geral"
+    echo "  makan72 health [full]                  Verificar saude do sistema"
+    echo ""
+    header "AGENTES:"
+    echo "  makan72 agent list                     Listar agentes"
+    echo "  makan72 agent add <code> <nome> <cli>  Adicionar agente"
+    echo "  makan72 agent remove <code>            Remover agente"
+    echo "  makan72 agent pause <code>             Pausar agente"
+    echo "  makan72 agent activate <code>          Activar agente"
+    echo "  makan72 agent info <code>              Detalhes do agente"
+    echo ""
+    echo "  SESSOES (novo):"
+    echo "  makan72 agent start <CODE>             Iniciar agente com contexto"
+    echo "  makan72 agent stop <CODE>              Parar sessao do agente"
+    echo "  makan72 agent attach <CODE>            Anexar a sessao existente"
+    echo "  makan72 agent sessions                 Listar sessoes activas"
+    echo "  makan72 agent cleanup                  Limpar sessoes mortas"
+    echo ""
+    header "SLOTS (tabs do Zellij):"
+    echo "  makan72 slot list                      Ver slots (1-5)"
+    echo "  makan72 slot set <1-5> <CODE>          Atribuir agente a slot"
+    echo "  makan72 slot clear <1-5>               Libertar slot"
+    echo "  makan72 slot swap <N> <M>              Trocar agentes entre slots"
+    echo ""
+    header "AUTOMACAO:"
+    echo "  makan72 bot <comando>                  Executar team-bot"
+    echo "  makan72 gate check <ficheiro>          Validar ficheiro"
+    echo "  makan72 shield lock|unlock             Proteger ficheiros"
+    echo "  makan72 commit                         Commit interactivo (Conventional Commits)"
+    echo ""
+    header "FERRAMENTAS:"
+    echo "  makan72 peek <CODE>                    Ver output do agente"
+    echo "  makan72 checkpoint [create|list]        Criar/listar checkpoints"
+    echo "  makan72 verify <tipo> <alvo>            Verificar claims (anti-alucinacao)"
+    echo "  makan72 audit [show|count|clear]        Ver log de auditoria"
+    echo ""
+    header "SISTEMA:"
+    echo "  makan72 info                           Informacao do sistema"
+    echo "  makan72 launch                         Gerar layout e lancar Zellij (opcional)"
+    echo "  makan72 broadcast <msg>                Enviar mensagem a todos os agentes"
+    echo "  makan72 attach <CODE>                  Navegar para tab do agente"
+    echo "  makan72 version                        Versao"
+    echo "  makan72 help                           Esta ajuda"
+}
+
+cmd_launch() {
+    # === ZELLIJ INTEGRATION — Director + Cameras ===
+    local layout_file="$MAKAN72_HOME/01-config/layouts/makan72.kdl"
+    local config_file="$MAKAN72_HOME/01-config/zellij-makan72.kdl"
+
+    # Verificar Zellij disponível
+    if ! command -v zellij &>/dev/null; then
+        echo -e "${YELLOW}AVISO:${NC} Zellij não encontrado. Instala: https://zellij.dev" >&2
+        return 1
+    fi
+
+    # Não permitir lançar dentro de outra sessão Zellij
+    if [[ -n "${ZELLIJ:-}" ]]; then
+        echo -e "${YELLOW}AVISO:${NC} Já estás numa sessão Zellij. Sai primeiro (Ctrl+Q)." >&2
+        return 1
+    fi
+
+    # Limpar sessões Zellij mortas para evitar acumulação
+    zellij delete-all-sessions -y 2>/dev/null || true
+
+    # Se sessão Makan72 já existe, matar e recriar (layout fresco)
+    if zellij list-sessions -n 2>/dev/null | grep -q "^Makan72 "; then
+        zellij kill-session Makan72 2>/dev/null || true
+        sleep 0.3
+        zellij delete-all-sessions -y 2>/dev/null || true
+    fi
+
+    # Gerar layout fresco
+    cmd_generate_layout
+
+    # Verificar que o layout existe
+    if [[ ! -f "$layout_file" ]]; then
+        error "Layout não gerado. Verifica agents.json."
+        return 1
+    fi
+
+    # Lançar Zellij com sessão nomeada "Makan72"
+    # NOTA: --layout + --session = attach (falha se não existe)
+    #       --new-session-with-layout (-n) = sempre cria sessão nova
+    if [[ ! -f "$config_file" ]]; then
+        echo -e "${YELLOW}AVISO:${NC} Config zellij-makan72.kdl não encontrado — usando defaults" >&2
+        exec zellij -s Makan72 -n "$layout_file"
+    else
+        info "A iniciar workspace Makan72..."
+        exec zellij -s Makan72 --config "$config_file" -n "$layout_file"
+    fi
+}
+
+cmd_version() {
+    echo "Makan72 v$VERSION"
+}
+
+# === BROADCAST ===
+cmd_broadcast() {
+    local MESSAGE="$*"
+
+    if [[ -z "$MESSAGE" ]]; then
+        echo "Uso: makan72 broadcast <mensagem>" >&2
+        echo "Exemplo: makan72 broadcast 'Novo contexto: foca em segurança'" >&2
+        return 1
+    fi
+
+    # makan72-functions.sh já carregado na linha 13 — não repetir source
+    info "📡 Broadcast para todos os agentes activos..."
+    m72_broadcast "$MESSAGE"
+}
+
+# === ATTACH ===
+cmd_attach() {
+    local AGENT_CODE="${1:-}"
+
+    if [[ -z "$AGENT_CODE" ]]; then
+        echo "Uso: makan72 attach <CODIGO_AGENTE>" >&2
+        echo "Exemplo: makan72 attach QWEN" >&2
+        return 1
+    fi
+
+    # makan72-functions.sh já carregado na linha 13 — não repetir source
+    m72_attach_agent "$AGENT_CODE"
+}
+
+# === SLOT MANAGEMENT ===
+cmd_slot() {
+    local subcmd="${1:-list}"
+    shift 2>/dev/null || true
+
+    case "$subcmd" in
+        set)
+            # makan72 slot set <N> <CODE>
+            local slot_num="${1:-}"
+            local code="${2:-}"
+            [[ -z "$slot_num" || -z "$code" ]] && { echo "Uso: makan72 slot set <1-5> <CODE>"; return 1; }
+            [[ "$slot_num" -ge 1 && "$slot_num" -le 5 ]] 2>/dev/null || { error "Slot deve ser 1-5"; return 1; }
+            code=$(echo "$code" | tr '[:lower:]' '[:upper:]')
+
+            # Verificar se agente existe e está activo
+            local agent_exists
+            agent_exists=$(jq -r ".agents[] | select(.code==\"$code\" and .status==\"active\") | .code" "$AGENTS_FILE" 2>/dev/null)
+            [[ -z "$agent_exists" ]] && { error "Agente $code não existe ou não está activo. Usa 'makan72 agent add' primeiro."; return 1; }
+
+            # Verificar se slot já está ocupado por outro agente
+            local current_occupant
+            current_occupant=$(jq -r ".agents[] | select(.tab==$slot_num and .status==\"active\") | .code" "$AGENTS_FILE" 2>/dev/null)
+            if [[ -n "$current_occupant" && "$current_occupant" != "$code" ]]; then
+                echo -e "${YELLOW}⚠ Slot $slot_num ocupado por $current_occupant — será libertado${NC}"
+                local tmp_file=$(mktemp)
+                jq "(.agents[] | select(.code==\"$current_occupant\") | .tab) = 0" "$AGENTS_FILE" > "$tmp_file" && mv "$tmp_file" "$AGENTS_FILE"
+            fi
+
+            # Limpar tab anterior do agente (se tinha outro slot)
+            local tmp_file=$(mktemp)
+            jq "(.agents[] | select(.code==\"$code\") | .tab) = $slot_num" "$AGENTS_FILE" > "$tmp_file" && mv "$tmp_file" "$AGENTS_FILE"
+
+            success "✅ $code → Slot $slot_num"
+            ;;
+
+        clear)
+            # makan72 slot clear <N>
+            local slot_num="${1:-}"
+            [[ -z "$slot_num" ]] && { echo "Uso: makan72 slot clear <1-5>"; return 1; }
+            [[ "$slot_num" -ge 1 && "$slot_num" -le 5 ]] 2>/dev/null || { error "Slot deve ser 1-5"; return 1; }
+
+            local current_occupant
+            current_occupant=$(jq -r ".agents[] | select(.tab==$slot_num and .status==\"active\") | .code" "$AGENTS_FILE" 2>/dev/null)
+            if [[ -z "$current_occupant" ]]; then
+                echo -e "${YELLOW}Slot $slot_num já está livre${NC}"
+                return 0
+            fi
+
+            local tmp_file=$(mktemp)
+            jq "(.agents[] | select(.tab==$slot_num) | .tab) = 0" "$AGENTS_FILE" > "$tmp_file" && mv "$tmp_file" "$AGENTS_FILE"
+            success "✅ Slot $slot_num libertado ($current_occupant → sem slot)"
+            ;;
+
+        swap)
+            # makan72 slot swap <N> <M>
+            local slot_a="${1:-}"
+            local slot_b="${2:-}"
+            [[ -z "$slot_a" || -z "$slot_b" ]] && { echo "Uso: makan72 slot swap <1-5> <1-5>"; return 1; }
+
+            local agent_a agent_b
+            agent_a=$(jq -r ".agents[] | select(.tab==$slot_a and .status==\"active\") | .code" "$AGENTS_FILE" 2>/dev/null)
+            agent_b=$(jq -r ".agents[] | select(.tab==$slot_b and .status==\"active\") | .code" "$AGENTS_FILE" 2>/dev/null)
+
+            local tmp_file=$(mktemp)
+            # Limpar ambos os slots primeiro
+            jq "(.agents[] | select(.tab==$slot_a) | .tab) = 0 | (.agents[] | select(.tab==$slot_b) | .tab) = 0" "$AGENTS_FILE" > "$tmp_file" && mv "$tmp_file" "$AGENTS_FILE"
+
+            # Atribuir novos slots
+            if [[ -n "$agent_a" ]]; then
+                tmp_file=$(mktemp)
+                jq "(.agents[] | select(.code==\"$agent_a\") | .tab) = $slot_b" "$AGENTS_FILE" > "$tmp_file" && mv "$tmp_file" "$AGENTS_FILE"
+            fi
+            if [[ -n "$agent_b" ]]; then
+                tmp_file=$(mktemp)
+                jq "(.agents[] | select(.code==\"$agent_b\") | .tab) = $slot_a" "$AGENTS_FILE" > "$tmp_file" && mv "$tmp_file" "$AGENTS_FILE"
+            fi
+
+            success "✅ Swap: ${agent_a:-[vazio]} (slot $slot_a) ↔ ${agent_b:-[vazio]} (slot $slot_b)"
+            ;;
+
+        list|"")
+            echo ""
+            echo "╔══════════════════════════════════════╗"
+            echo "║         SLOTS MAKAN72 (1-5)         ║"
+            echo "╠══════════════════════════════════════╣"
+            for s in 1 2 3 4 5; do
+                local agent
+                agent=$(jq -r ".agents[] | select(.tab==$s and .status==\"active\") | \"\(.code) (\(.cli))\"" "$AGENTS_FILE" 2>/dev/null)
+                if [[ -n "$agent" ]]; then
+                    printf "║  Slot %d: %-28s ║\n" "$s" "$agent"
+                else
+                    printf "║  Slot %d: %-28s ║\n" "$s" "[LIVRE]"
+                fi
+            done
+            echo "╠══════════════════════════════════════╣"
+            echo "║  Slot 6: MAP (fixo)                 ║"
+            echo "╚══════════════════════════════════════╝"
+            echo ""
+            echo "Comandos:"
+            echo "  makan72 slot set <1-5> <CODE>   Atribuir agente a slot"
+            echo "  makan72 slot clear <1-5>        Libertar slot"
+            echo "  makan72 slot swap <N> <M>       Trocar agentes entre slots"
+            ;;
+
+        *)
+            echo "Uso: makan72 slot {set|clear|swap|list}"
+            ;;
+    esac
+}
+
+# === COMMIT ===
+cmd_commit() {
+    bash "$MAKAN72_HOME/05-scripts/utils/commit.sh" "$@"
+}
+
+# === SUB-HELPERS ===
+show_project_help() {
+    echo "PROJECTOS:"
+    echo "  makan72 project create <nome> [path]   Criar novo projecto"
+    echo "  makan72 project register <path>        Registar projecto existente"
+    echo "  makan72 project list                   Listar projectos"
+    echo "  makan72 project switch <nome>          Mudar projecto activo"
+    echo "  makan72 project info [nome]            Detalhes do projecto"
+    echo "  makan72 project remove <nome>          Remover do registo"
+    echo "  makan72 project active                 Ver projecto activo"
+}
+
+show_agent_help() {
+    echo ""
+    echo "  makan72 agent list                     Listar agentes"
+    echo "  makan72 agent add <code> <nome> <cli>  Adicionar agente"
+    echo "  makan72 agent remove <code>            Remover agente"
+    echo "  makan72 agent pause <code>             Pausar agente"
+    echo "  makan72 agent activate <code>          Activar agente"
+    echo "  makan72 agent info <code>              Detalhes do agente"
+    echo ""
+    echo "  SESSOES (novo):"
+    echo "  makan72 agent start <CODE>             Iniciar agente com contexto"
+    echo "  makan72 agent stop <CODE>              Parar sessao do agente"
+    echo "  makan72 agent attach <CODE>            Anexar a sessao existente"
+    echo "  makan72 agent sessions                 Listar sessoes activas"
+    echo "  makan72 agent cleanup                  Limpar sessoes mortas"
+}
+
+# === MAIN ===
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+case "$CMD" in
+    project)
+        if [[ $# -eq 0 ]]; then
+            show_project_help
+        else
+            cmd_project "$@"
+        fi
+        ;;
+    agent)
+        if [[ $# -eq 0 ]]; then
+            show_agent_help
+        else
+            cmd_agent "$@"
+        fi
+        ;;
+    start)     cmd_start "$@" ;;
+    stop)      cmd_stop "$@" ;;
+    status)    cmd_status "$@" ;;
+    health)    cmd_health "$@" ;;
+    bot)       cmd_bot "$@" ;;
+    gate)      cmd_gate "$@" ;;
+    shield)    cmd_shield "$@" ;;
+    info)      cmd_info "$@" ;;
+    layout)    cmd_layout "$@" ;;
+    generate-layout) cmd_generate_layout "$@" ;;
+    launch)    cmd_launch "$@" ;;
+    broadcast) cmd_broadcast "$@" ;;
+    attach)    cmd_attach "$@" ;;
+    version|--version|-v) cmd_version ;;
+    slot)      cmd_slot "$@" ;;
+    commit)    cmd_commit "$@" ;;
+    peek)      cmd_peek "$@" ;;
+    checkpoint) cmd_checkpoint "$@" ;;
+    verify)    cmd_verify "$@" ;;
+    audit)     cmd_audit "$@" ;;
+    dashboard) cmd_dashboard "$@" ;;
+    setup)     cmd_setup "$@" ;;
+    help|--help|-h) show_help ;;
+    *)
+        echo "Comando desconhecido: $CMD"
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac

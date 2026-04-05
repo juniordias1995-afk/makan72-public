@@ -1,0 +1,21 @@
+# Sugestão de papéis para projecto Desktop
+roles:
+  planner: "CLAUDE"
+  frontend_builder: "GEMINI"
+  rust_builder: "QWEN"
+  reviewer: "CLAUDE"
+  tester: "QWEN"
+
+workflow:
+  - agent: "CLAUDE"
+    task: "Planear janelas, funcionalidades nativas, arquitectura"
+  - agent: "GEMINI"
+    task: "Construir frontend React"
+  - agent: "QWEN"
+    task: "Implementar backend Rust + Tauri commands"
+  - agent: "QWEN"
+    task: "Testes e build multi-plataforma"
+  - agent: "CLAUDE"
+    task: "Revisar código, segurança, UX"
+
+note: "CEO decide papéis finais. Isto é uma SUGESTÃO."

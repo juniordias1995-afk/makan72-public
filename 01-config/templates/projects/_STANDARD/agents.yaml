@@ -1,0 +1,8 @@
+# Sugestão de papéis (CEO decide no final)
+defaults:
+  planner: "CLAUDE"
+  reviewer: "CLAUDE"
+  builder: "QWEN"
+  frontend: "GEMINI"
+
+note: "Estes são DEFAULTS. O CEO pode mudar qualquer papel."

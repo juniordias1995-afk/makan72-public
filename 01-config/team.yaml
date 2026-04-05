@@ -1,0 +1,31 @@
+# team.yaml — Configuração do SISTEMA Makan72
+system:
+  name: "Makan72"
+  version: "1.0.0"
+  owner: "Boavidawork"  # Nome do CEO/utilizador
+
+rules:
+  max_active_agents: 10
+  report_retention_days: 30
+  archive_after_days: 30
+  bus_heartbeat_ttl_hours: 24
+  bus_status_ttl_hours: 48
+  auto_cleanup: true
+
+git:
+  auto_push: false
+  branch: "main"
+
+paths:
+  home: "~/.Makan72"
+  global: "00-global"
+  config: "01-config"
+  bots: "02-bots"
+  inbox: "03-inbox"
+  bus: "04-bus"
+  scripts: "05-scripts"
+  reports: "06-reports"
+  archive: "07-archive"
+  logs: "08-logs"
+  workspace: "09-workspace"
+  tools: "10-tools"

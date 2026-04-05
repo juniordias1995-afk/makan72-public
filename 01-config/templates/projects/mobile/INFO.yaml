@@ -1,0 +1,21 @@
+name: "mobile"
+display_name: "Mobile App"
+description: "Template para aplicações móveis cross-platform"
+version: "1.0.0"
+
+stack:
+  framework: "Flutter 3.x"
+  linguagem: "Dart"
+  state_management: "Riverpod"
+  platforms: "iOS + Android"
+  deploy: "App Store + Google Play"
+
+tags:
+  - mobile
+  - flutter
+  - dart
+  - ios
+  - android
+
+difficulty: "Média-Alta"
+estimated_time: "2-6 semanas"
